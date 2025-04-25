@@ -1,8 +1,8 @@
 import sys
-sys.path.append('/DATACENTER4/jiangbo.chai/OOPAO_TRWFS-master')
+sys.path.append('/DATACENTER4/jiangbo.chai/SWJTU_OOPAO')
 
 from stable_baselines3 import PPO
-from tutorials.scao_system.myAoSystem.RL4AO.AdaptiveOpticsEnv import AOEnv
+from SWJTU_OOPAO.tutorials.scao_system.myAoSystem.RL4AO.env.AdaptiveOpticsEnv import AOEnv
 # 创建环境
 env = AOEnv()
 

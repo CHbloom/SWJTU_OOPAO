@@ -88,6 +88,6 @@ def initializeParameterFile():
     print('Reading/Writting calibration data from ' + param['pathInput'])
     print('Writting output data in ' + param['pathOutput'])
 
-    createFolder(param['pathOutput'])
+    # createFolder(param['pathOutput'])------
 
     return param

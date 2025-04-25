@@ -183,7 +183,7 @@ def ao_calibration(ngs, tel, atm, dm, wfs, param,nameFolderIntMat = None, nameIn
         # check if a name for the origin folder is specified
     if nameFolderBasis is None:
         nameFolderBasis = param['pathInput']
-    createFolder(nameFolderBasis)
+    # createFolder(nameFolderBasis)------------------------
         
 ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       
 #    get the modal basis : 
@@ -244,7 +244,7 @@ def ao_calibration(ngs, tel, atm, dm, wfs, param,nameFolderIntMat = None, nameIn
 ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       
     if nameFolderIntMat is None:
         nameFolderIntMat = param['pathInput']+param['name']+'/'
-    createFolder(nameFolderIntMat)
+    # createFolder(nameFolderIntMat)------------------------------------
 #%    get the interaction matrix : 
         
     if nameIntMat is None:
@@ -295,7 +295,7 @@ def ao_calibration(ngs, tel, atm, dm, wfs, param,nameFolderIntMat = None, nameIn
         hdu = pfits.HDUList([empty_primary, primary_hdu])
         # flag =random.random
         # temp_name ='_' +flag
-        hdu.writeto(nameFolderIntMat+nameIntMat +'.fits',overwrite=True)
+        # hdu.writeto(nameFolderIntMat+nameIntMat +'.fits',overwrite=True)----------------------------------
         calib = CalibrationVault(calib.D@M2C)
 
 ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%       

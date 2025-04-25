@@ -141,10 +141,9 @@ class Atmosphere:
             self.initial_r0 = self.r0
             for i_layer in range(self.nLayer):       
                 # create the layer
-                # print('Creation of layer' + str(i_layer+1) + '/' + str(self.nLayer) + ' ...' )
+                # print('Creation of layer' + str(i_layer+1) + '/' + str(self.nLayer) + ' ...' )-------------
                 tmpLayer=self.buildLayer(telescope,self.r0_def,self.L0,i_layer = i_layer)
                 setattr(self,'layer_'+str(i_layer+1),tmpLayer)
-                
                 phase_support = self.fill_phase_support(tmpLayer,phase_support,i_layer)
                 tmpLayer.phase_support = phase_support
                 tmpLayer.phase *= self.wavelength/2/np.pi
@@ -153,7 +152,7 @@ class Atmosphere:
             # print('Re-setting the atmosphere to its initial state...' )--------------------
             self.r0 = self.initial_r0
             for i_layer in range(self.nLayer):       
-                # print('Updating layer' + str(i_layer+1) + '/' + str(self.nLayer) + ' ...' )-----------------
+                # print('Updating layer' + str(i_layer+1) + '/' + str(self.nLayer) + ' ...' )---------------
                 tmpLayer = getattr(self,'layer_'+str(i_layer+1))
                 tmpLayer.phase          = tmpLayer.initialPhase/self.wavelength*2*np.pi
                 tmpLayer.randomState    = RandomState(42+i_layer*1000)
@@ -382,7 +381,6 @@ class Atmosphere:
             tmpLayer=getattr(self,'layer_'+str(i_layer+1))
             self.updateLayer(tmpLayer)
             # tmpLayer.phase *= self.wavelength/2/np.pi
-
             phase_support = self.fill_phase_support(tmpLayer,phase_support,i_layer)
         self.set_OPD(phase_support)
         if self.telescope.isPaired:

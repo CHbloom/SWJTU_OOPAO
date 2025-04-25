@@ -272,14 +272,14 @@ class ShackHartmann:
         # flux per subaperture
         self.reference_slopes_maps = np.zeros([self.nSubap * 2, self.nSubap])
         self.slopes_units = 1
-        print('Acquiring reference slopes..')
+        # print('Acquiring reference slopes..')
         self.telescope.resetOPD()
         self.wfs_measure()
         self.reference_slopes_maps = np.copy(self.signal_2D)
         self.isInitialized = True
-        print('Done!')
+        # print('Done!')
 
-        print('Setting slopes units..')
+        # print('Setting slopes units..')
         [Tip, Tilt] = np.meshgrid(np.linspace(0, self.telescope.resolution - 1, self.telescope.resolution),
                                   np.linspace(0, self.telescope.resolution - 1, self.telescope.resolution))
         # normalize to 2 pi p2v
@@ -294,12 +294,12 @@ class ShackHartmann:
             mean_slope[i] = np.mean(self.signal[:self.nValidSubaperture])
         self.p = np.polyfit(np.linspace(-2, 2, 5) * amp, mean_slope, deg=1)
         self.slopes_units = np.abs(self.p[0])
-        print('Done!')
+        # print('Done!')
         self.cam.photonNoise = readoutNoise
         self.cam.readoutNoise = photonNoise
         self.telescope.resetOPD()
 
-        self.print_properties()
+        # self.print_properties()
 
     def centroid(self, image, threshold=0.01):
         im = np.atleast_3d(image.copy())
