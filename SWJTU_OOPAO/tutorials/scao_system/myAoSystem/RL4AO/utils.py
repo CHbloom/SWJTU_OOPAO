@@ -150,6 +150,97 @@ def test_agent(agent, env, save_dir, episodes=1):
         plt.tight_layout()
         plt.savefig(f"{save_dir}/plots/actions_episode_{x}.png")
         plt.close()
+
+def get_action_from_discrete(discrete_action):
+    """
+    将离散动作转化为实际的控制值。
+    """
+    gain_values = np.arange(0.1, 1.05, 0.05)  # [0.1, 1.0]，步长0.05
+    sampling_rate_values = np.arange(100, 2100, 100)  # [100, 2000]，步长100
+    exposure_time_values = np.arange(0.1, 1.05, 0.05)  # [0.1, 1.0]，步长0.05
+    clock_rate_values = np.arange(100, 2100, 100)  # [100, 2000]，步长100
+
+    # 使用离散的动作索引来获取实际值
+    gain = gain_values[discrete_action[0]]
+    sampling_rate = sampling_rate_values[discrete_action[1]]
+    exposure_time = exposure_time_values[discrete_action[2]]
+    clock_rate = clock_rate_values[discrete_action[3]]
+
+    return np.array([gain, sampling_rate, exposure_time, clock_rate])
+
+def test_disc_agent(agent, env, save_dir, episodes=3):
+    save_dir = "./data/"+save_dir+"/test/"
+    x = 0
+    while x<episodes:
+        x+=1
+        # 为每次测试提供一个不同的随机种子
+        # 这样可以确保每次测试时，大气湍流都是不同的。
+        state, _ = env.reset(seed=10000 + x)
+        
+        episode_return_agent = 0
+        done = False
+        gainCL_list = []
+        sampling_rate_list = []
+        exposure_time_list = []
+        clock_rate_list = []
+        while not done:
+            action = agent.take_action(state, mode="test")
+            discrete_action = get_action_from_discrete(action)
+            gainCL_list.append(discrete_action[0])
+            sampling_rate_list.append(discrete_action[1])
+            exposure_time_list.append(discrete_action[2])
+            clock_rate_list.append(discrete_action[3])
+            next_state, reward, done, _, info = env.step(action)
+            state = next_state
+            episode_return_agent += reward
+        print('return=',episode_return_agent)
+        plt.figure()
+        plt.plot(np.arange(env.max_step), env.SR, label='Strehl Ratio')
+        plt.xlabel('Loop Index')
+        plt.title(f'Strehl Ratio(return={episode_return_agent})')
+        plt.legend()
+        plt.grid()
+        plt.savefig(f"{save_dir}/plots/SR_episode_{x}.png")
+        plt.close()
+
+        plt.figure()
+        plt.plot(np.arange(env.max_step), env.SR_old, label='Strehl Ratio old')
+        plt.xlabel('Loop Index')
+        plt.title(f'Strehl Ratio(return={episode_return_agent})')
+        plt.legend()
+        plt.grid()
+        plt.savefig(f"{save_dir}/plots/SR_episode_old{x}.png")
+        plt.close()
+
+        plt.figure(figsize=(12,12))
+    
+        plt.subplot(221)
+        plt.plot(gainCL_list)
+        plt.title("gainCL")
+        plt.xlabel("Loop Index")
+        plt.grid()
+        
+        plt.subplot(222)
+        plt.plot(sampling_rate_list)
+        plt.title("sampling_rate")
+        plt.xlabel("Loop Index")
+        plt.grid()
+        
+        plt.subplot(223)
+        plt.plot(exposure_time_list)
+        plt.title("exposure_time")
+        plt.xlabel("Loop Index")
+        plt.grid()
+
+        plt.subplot(224)
+        plt.plot(clock_rate_list)
+        plt.title("clock_rate")
+        plt.xlabel("Loop Index")
+        plt.grid()
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/plots/actions_episode_{x}.png")
+        plt.close()
             
             
 class ReplayBuffer:

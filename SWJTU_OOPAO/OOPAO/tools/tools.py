@@ -303,46 +303,95 @@ def centroid(image, threshold = 0):
             x+=im[i,j]*j/s
             y+=im[j,i]*j/s
             
-    return x,y    
+    return x,y
 
 
-def bin_ndarray(ndarray, new_shape, operation='sum'):
+def bin_ndarray(ndarray, new_shape, operation='sum', ignore_zeros=False):
     """
-    Bins an ndarray in all axes based on the target shape, by summing or
-        averaging.
+    Bins a ndarray in all axes based on the target shape, by summing or
+    averaging.
 
-    Number of output dimensions must match number of input dimensions and 
-        new axes must divide old ones.
+    If operation = "mean" and ignore_zeros is True, the mean is computed
+    considering only  nonzero elements in each bin. Useful binning feature
+    for the geometric SH implementation.
 
-    Example
-    -------
-    >>> m = np.arange(0,100,1).reshape((10,10))
-    >>> n = bin_ndarray(m, new_shape=(5,5), operation='sum')
-    >>> print(n)
+    Parameters:
+    -----------
+    ndarray : numpy.ndarray
+        Input array to be binned.
+    new_shape : tuple
+        Target shape after binning.
+    operation : str, optional
+        Either 'sum' or 'mean'. Default is 'sum'.
+    ignore_zeros : bool, optional
+        If True, the mean is computed considering only nonzero elements.
 
-    [[ 22  30  38  46  54]
-     [102 110 118 126 134]
-     [182 190 198 206 214]
-     [262 270 278 286 294]
-     [342 350 358 366 374]]
-
+    Returns:
+    --------
+    numpy.ndarray
+        Binned array.
     """
+
     operation = operation.lower()
-    if not operation in ['sum', 'mean']:
+    if operation not in ['sum', 'mean']:
         raise ValueError("Operation not supported.")
     if ndarray.ndim != len(new_shape):
-        raise ValueError("Shape mismatch: {} -> {}".format(ndarray.shape,
-                                                           new_shape))
-    compression_pairs = [(d, c//d) for d,c in zip(new_shape,
-                                                  ndarray.shape)]
-    flattened = [l for p in compression_pairs for l in p]
-    ndarray = ndarray.reshape(flattened)
-    for i in range(len(new_shape)):
-        op = getattr(ndarray, operation)
-        ndarray = op(-1*(i+1))
-    return ndarray
+        raise ValueError(f"Shape mismatch: {ndarray.shape} -> {new_shape}")
+
+    compression_pairs = [(d, c // d) for d, c in zip(new_shape, ndarray.shape)]
+    reshaped_shape = [l for pair in compression_pairs for l in pair]
+    ndarray = ndarray.reshape(reshaped_shape)
+
+    if ignore_zeros and operation == 'mean':
+        # Compute sum and count of nonzero elements
+        summed = np.sum(ndarray, axis=tuple(range(1, len(new_shape) * 2, 2)))
+        count_nonzero = np.count_nonzero(ndarray, axis=tuple(range(1, len(new_shape) * 2, 2)))
+        with np.errstate(divide='ignore', invalid='ignore'):  # avoid division by 0 problems
+            binned_array = np.where(count_nonzero > 0, summed / count_nonzero, 0)
+    else:
+        # Apply regular sum or mean binning
+        # getattr --> retrieves numpy method: ndarray.sum if operation = "sum" and ndarray.mean if operation = "mean"
+        op = getattr(ndarray,operation)
+        binned_array = op(axis=tuple(range(1, len(new_shape) * 2, 2)))  # apply method to obtain final binned array
+
+    return binned_array
 
 
+# def bin_ndarray(ndarray, new_shape, operation='sum'):
+#     """
+#     Bins an ndarray in all axes based on the target shape, by summing or
+#         averaging.
+#
+#     Number of output dimensions must match number of input dimensions and
+#         new axes must divide old ones.
+#
+#     Example
+#     -------
+#     >>> m = np.arange(0,100,1).reshape((10,10))
+#     >>> n = bin_ndarray(m, new_shape=(5,5), operation='sum')
+#     >>> print(n)
+#
+#     [[ 22  30  38  46  54]
+#      [102 110 118 126 134]
+#      [182 190 198 206 214]
+#      [262 270 278 286 294]
+#      [342 350 358 366 374]]
+#
+#     """
+#     operation = operation.lower()
+#     if not operation in ['sum', 'mean']:
+#         raise ValueError("Operation not supported.")
+#     if ndarray.ndim != len(new_shape):
+#         raise ValueError("Shape mismatch: {} -> {}".format(ndarray.shape,
+#                                                            new_shape))
+#     compression_pairs = [(d, c//d) for d,c in zip(new_shape,
+#                                                   ndarray.shape)]
+#     flattened = [l for p in compression_pairs for l in p]
+#     ndarray = ndarray.reshape(flattened)
+#     for i in range(len(new_shape)):
+#         op = getattr(ndarray, operation)
+#         ndarray = op(-1*(i+1))
+#     return ndarray
 
 def get_gpu_memory():
     command = "nvidia-smi --query-gpu=memory.free --format=csv"
@@ -377,7 +426,6 @@ def compute_fourier_mode(pupil,spatial_frequency,angle_deg,zeropadding = 2):
     
     return mode
 
-
 def circularProfile(img, maximum = False):
     # Compute circular average profile from an image, reference to center of image
     # Get image parameters
@@ -407,3 +455,110 @@ def circularProfile(img, maximum = False):
         index += 1
     return intensity
 
+def set_binning( array, binning_factor,mode='sum'):
+    if array.shape[0]%binning_factor == 0:
+        if array.ndim == 2:
+            new_shape = [int(np.round(array.shape[0]/binning_factor)), int(np.round(array.shape[1]/binning_factor))]
+            shape = (new_shape[0], array.shape[0] // new_shape[0], 
+                     new_shape[1], array.shape[1] // new_shape[1])
+            if mode == 'sum':
+                return array.reshape(shape).sum(-1).sum(1)
+            else:
+                return array.reshape(shape).mean(-1).mean(1)
+        else:
+            new_shape = [int(np.round(array.shape[0]/binning_factor)), int(np.round(array.shape[1]/binning_factor)), array.shape[2]]
+            shape = (new_shape[0], array.shape[0] // new_shape[0], 
+                     new_shape[1], array.shape[1] // new_shape[1], new_shape[2])
+            if mode == 'sum':
+                return array.reshape(shape).sum(-2).sum(1)
+            else:
+                return array.reshape(shape).mean(-2).mean(1)
+    else:
+        raise ValueError('Binning factor %d not compatible with the array size'%(binning_factor))
+def gaussian_2D(resolution, fwhm, position = None, theta = 0,centered = True):
+    """
+    This function computes a 2D gaussian function on a square support of resolution pixels. The gaussian function is normalised to 1. 
+    By default the gaussian function is centered on the support but its position can be modified by setting the position parameter.
+    The centering is done on 4 pixels by default but this can be modified setting the centered input to false.
+    Examples: 
+        -Compute a symmetric gaussian function centered on 4 pixels with a fwhm of 10 pix on a support of 100 pix
+            G = gaussian_2D(resolution=100, fwhm=10)
+        -Compute a symmetric gaussian function centered on a single pixel with a fwhm of 10 pix on a support of 100 pix
+            G = gaussian_2D(resolution=100, fwhm=10, centered=False)
+        -Compute a disymmetric gaussian function centered on 4 pixels with a fwhm of 10 pix in X and 20 pix in Y on a support of 100 pix
+            G = gaussian_2D(resolution=100, fwhm=[10,20])
+        -Compute a disymmetric gaussian function centered on 4 pixels with a fwhm of 10 pix in X and 20 pix in Y on a support of 100 pix
+            G = gaussian_2D(resolution=100, fwhm=[10,20],theta= np.pi/3)    
+        
+            
+    ----------
+    resolution : float
+        resolution of the 2D support in pixel
+    fwhm : float/list
+        Full Width Half max of the Gaussian function in pixels. 
+        If fwhm is a scalar value, the gaussian function is computed with the same fwhm in the X and Y direction. 
+        If fwhm is list of two scalar values, the gaussian function is computed with a different fwhm in the X and Y direction.
+    position : list, optional
+        Location in [pix] of the center of the gaussian function with respect to the center. 
+        The default is None and corresponds to a centered gaussian function.
+    theta : float, optional
+        Direction in [rad] for the case of an assymetric gaussian function. The default is 0.
+    centered : bool, optional
+            Flag to center the gaussian one 1x1 pixel (False) or 2x2 pixels (True). The default is True.
+
+    Returns
+    -------
+    G : numpy array (float64)
+        2D array containing the gaussian function.
+
+    """
+    if position is None:
+        x0 = resolution/2
+        y0 = resolution/2
+    else:
+        if isinstance(position,list):
+            if len(position) == 2:
+                x0 = resolution/2 + position[0]
+                y0 = resolution/2 + position[1]
+            else:
+                raise AttributeError('the input position should be a list of two elements')
+        else:
+            raise AttributeError('the input position should be a list of two elements')
+
+    if np.isscalar(fwhm):
+        fwhm = [fwhm, fwhm]
+    else:
+        if len(fwhm) != 2:
+            raise AttributeError('fwhm must be either a scalar or a list of length 2')
+        
+    # X & Y fwhm computation
+    cx = (fwhm[0])/2*np.sqrt(2*np.log(2))
+    cy = (fwhm[1])/2*np.sqrt(2*np.log(2))
+    
+    # define the cartesian grid on which the gaussian function is computed
+    x = np.linspace(0, resolution, resolution, endpoint=centered) 
+    X, Y = np.meshgrid(x, x)
+    
+    # Compute the 2D Gaussian coefficients
+    a = np.cos(theta)**2/(2*cx**2) + np.sin(theta)**2/(2*cy**2)
+    b = -np.sin(2*theta)/(4*cx**2) + np.sin(2*theta)/(4*cy**2)
+    c = np.sin(theta)**2/(2*cx**2) + np.cos(theta)**2/(2*cy**2)
+    # compute the gaussian function
+    G = np.exp(-(a*(X-x0)**2 + 2*b*(X-x0)*(Y-y0) + c*(Y-y0)**2))
+    G /= G.sum()
+    return G
+
+
+def warning(string):
+    print('\033[01m\033[33m'+'OOPAO Warning: \n' + string + '\033[0m')
+
+
+class OopaoError(Exception):
+    """Exception raised for errors related to OOPAO objects.
+    Attributes:
+    """
+
+    def __init__(self, string):
+        self.string = string
+        self.message = (string)
+        super().__init__(self.message)

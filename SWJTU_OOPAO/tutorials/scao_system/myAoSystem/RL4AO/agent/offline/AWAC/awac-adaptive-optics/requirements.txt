@@ -1,0 +1,10 @@
+numpy
+torch
+gym
+matplotlib
+scikit-learn
+pandas
+seaborn
+tensorboard
+opencv-python
+importlib-metadata

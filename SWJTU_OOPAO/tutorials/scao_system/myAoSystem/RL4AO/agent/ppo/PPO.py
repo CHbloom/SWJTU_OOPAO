@@ -1,6 +1,8 @@
 import torch
 import torch.nn.functional as F
-from env.AdaptiveOpticsEnv import AOEnv
+import sys
+sys.path.append('/DATACENTER4/jiangbo.chai/SWJTU_OOPAO/tutorials/scao_system/myAoSystem/RL4AO')
+from envs.AdaptiveOpticsEnv import AOEnv
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt

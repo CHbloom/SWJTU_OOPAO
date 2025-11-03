@@ -10,7 +10,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage, TextArea
-
+import math
 
 
 from .tools import emptyClass
@@ -37,7 +37,7 @@ def displayMap(A,norma=False,axis=2,mask=0,returnOutput = False):
             return -1
 
         else:
-            if np.math.log(n1,np.sqrt(n1)) == 2.0:
+            if math.log(n1,np.sqrt(n1)) == 2.0:
                 nImage = n2
                 nPix1 = int(np.sqrt(n1))
                 nPix2 = nPix1
@@ -51,14 +51,17 @@ def displayMap(A,norma=False,axis=2,mask=0,returnOutput = False):
         else:
             print('Error wrong size for the image cube')
             return -1
+    r = 1         
+    nPix1_ = nPix1+2*r
+    nPix2_ = nPix2+2*r
     
-#    Create a meta Map
-    
+    # Create a meta Map
     nSide = int(np.ceil(np.sqrt(nImage)))
-        
-    S=np.zeros([nPix1*nSide-1,nPix2*nSide-1])
+    S=np.zeros([nPix1_*nSide-1+nSide,nPix2_*nSide-1+nSide])
+    S[:] = np.inf
     
     count=0
+
     for i in range(nSide):
         for j in range(nSide):
             count+=1
@@ -69,24 +72,23 @@ def displayMap(A,norma=False,axis=2,mask=0,returnOutput = False):
                     tmp = A[:,:,count-1] 
                 if norma:
                     tmp = tmp/np.max(np.abs(tmp))
-                S[ i*(nPix1-1) : nPix1 +i*(nPix1-1) , j*(nPix2-1) : nPix2 +j*(nPix2-1)] = tmp
+                tmp = np.pad(tmp,(r,r),'constant',constant_values=(np.inf,np.inf))
+                S[ i*(nPix1_-1) : nPix1_ +i*(nPix1_-1) , j*(nPix2_-1) : nPix2_ +j*(nPix2_-1)] = tmp
     
-
-    maxValue = np.max(S)
-    minValue = np.min(S)
-
-    fig = plt.figure()
-    fig.suptitle(f"Bases used for the interaction matrix\nMax: {maxValue:.2f} nm, Min: {minValue:.2f} nm", fontsize=18)
-    img_plt = plt.imshow(S)
-    plt.colorbar(img_plt)
+    
+    plt.figure()
+    plt.imshow(S)
+    plt.axis('off')
     if returnOutput:
         return S
 
-def makeSquareAxes(ax):
+def makeSquareAxes(ax=None):
     """Make an axes square in screen units.
 
     Should be called after plotting.
     """
+    if ax is None:
+        ax = plt.gca()
     ax.set_aspect(1 / ax.get_data_ratio())
 
 
@@ -95,41 +97,12 @@ def getColorOrder():
     return color
             
         
-def displayPyramidSignals(wfs,signals,returnOutput=False, norma = False):
-    
-    A= np.zeros(wfs.validSignal.shape)
-    print(A.shape)
-    A[:]=np.Inf
-    # one signal only
-    if np.ndim(signals)==1:
-        if wfs.validSignal.sum() == signals.shape:
-            A[np.where(wfs.validSignal==1)]=signals
-        plt.figure()
-        plt.imshow(A)
-        out =A
-    else:
-        B= np.zeros([wfs.validSignal.shape[0],wfs.validSignal.shape[1],signals.shape[1]])
-        B[:]=np.Inf
-        if wfs.validSignal.shape[0] == wfs.validSignal.shape[1]:
-            B[wfs.validSignal,:]=signals
-            out = displayMap(B,returnOutput=True)
-        else:
-            for i in range(signals.shape[1]):
-                A[np.where(wfs.validSignal==1)]=signals[:,i]
-                if norma:
-                    A/= np.max(np.abs(signals[:,i]))
-                B[:,:,i] = A
-            out = displayMap(B,returnOutput=True)
-    if returnOutput:
-        return out
-        
-
 def display_wfs_signals(wfs,signals,returnOutput=False, norma = False):
     
-    if wfs.tag == 'pyramid':
+    if wfs.tag == 'pyramid' or wfs.tag == 'bioEdge':
         A= np.zeros(wfs.validSignal.shape)
         print(A.shape)
-        A[:]=np.Inf
+        A[:]=np.inf
         # one signal only
         if np.ndim(signals)==1:
             if wfs.validSignal.sum() == signals.shape:
@@ -139,23 +112,24 @@ def display_wfs_signals(wfs,signals,returnOutput=False, norma = False):
             out =A
         else:
             B= np.zeros([wfs.validSignal.shape[0],wfs.validSignal.shape[1],signals.shape[1]])
-            B[:]=np.Inf
+            B[:]=np.inf
             if wfs.validSignal.shape[0] == wfs.validSignal.shape[1]:
                 B[wfs.validSignal,:]=signals
-                out = displayMap(B,returnOutput=True)
+                out = displayMap(B,axis=2,returnOutput=True)
             else:
                 for i in range(signals.shape[1]):
                     A[np.where(wfs.validSignal==1)]=signals[:,i]
                     if norma:
                         A/= np.max(np.abs(signals[:,i]))
                     B[:,:,i] = A
-                out = displayMap(B,returnOutput=True)
+                print(B.shape)
+                out = displayMap(B,axis=2,returnOutput=True)
         if returnOutput:
             return out
     if wfs.tag == 'shackHartmann':
         A= np.zeros(wfs.valid_slopes_maps.shape)
         print(A.shape)
-        A[:]=np.Inf
+        A[:]=np.inf
         # one signal only
         if np.ndim(signals)==1:
             if wfs.valid_slopes_maps.sum() == signals.shape:
@@ -165,7 +139,7 @@ def display_wfs_signals(wfs,signals,returnOutput=False, norma = False):
             out =A
         else:
             B= np.zeros([wfs.valid_slopes_maps.shape[0],wfs.valid_slopes_maps.shape[1],signals.shape[1]])
-            B[:]=np.Inf
+            B[:]=np.inf
             if wfs.valid_slopes_maps.shape[0] == wfs.valid_slopes_maps.shape[1]:
                 B[wfs.valid_slopes_maps,:]=signals
                 out = displayMap(B,returnOutput=True)
@@ -326,7 +300,7 @@ def compute_gif(cube, name, vect = None, vect2 = None, vlim = None, fps = 2):
         # animation function. This is called sequentially
     def animate(i):
         tmp = np.copy(data[i,:,:])
-        tmp[np.where(tmp==0)] = np.inf
+        #tmp[np.where(tmp==0)] = np.inf
         line.set_data(np.fliplr(np.flip(tmp.T)))
         # SR.set_text(str(np.round(vect[i],1))+' %')
         # FWHM.set_text(str(np.round(vect2[i],1))+' mas')
@@ -343,11 +317,11 @@ def compute_gif(cube, name, vect = None, vect2 = None, vlim = None, fps = 2):
     anim = animation.FuncAnimation(fig, animate, init_func=init,
                                     frames=data.shape[0], interval=100)
     
-    folder = 'C:/Users/cheritier/Documents/gif_from_python/'
+    folder = ''
     anim.save(folder+name+'.gif', writer='imagemagick', fps=fps)
     return
 
-def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = None,list_ratio = None, list_title = None, list_lim = None,list_label = None, list_display_axis = None,list_buffer =  None,s=16):
+def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = None,list_ratio = None, list_title = None, list_lim = None,list_label = None, list_display_axis = None,list_legend = None, list_buffer =  None,s=16):
     
     n_im = len(list_fig)
     if n_subplot is None:
@@ -367,6 +341,8 @@ def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = 
         plt_obj.list_label = list_label
         plt_obj.list_buffer = list_buffer        
         plt_obj.list_lim = list_lim
+        plt_obj.list_legend = list_legend        
+        plt_obj.list_title = list_title        
 
         plt_obj.keep_going = True
         f = plt.figure(fig_number,figsize = [n_sp*4,n_sp_y*2],facecolor=[0,0.1,0.25], edgecolor = None)
@@ -412,12 +388,21 @@ def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = 
            # PLOT     
                     if type_fig[count] == 'plot':
                         data_tmp = list_fig[count]
+                        if len(data_tmp)==3:
+                            if list_legend[count] is None:
+                                line_tmp, = sp_tmp.plot(data_tmp[0],data_tmp[1],'-',)      
+                                line_tmp_2, = sp_tmp.plot(data_tmp[0],data_tmp[2],'-')                            
+                            else:
+                                line_tmp, = sp_tmp.plot(data_tmp[0],data_tmp[1],'-',label = list_legend[count][0])      
+                                line_tmp_2, = sp_tmp.plot(data_tmp[0],data_tmp[2],'-',label = list_legend[count][1])
+                            setattr(plt_obj,'im_'+str(count)+'_2',line_tmp_2)
+                            
                         if len(data_tmp)==2:
                             line_tmp, = sp_tmp.plot(data_tmp[0],data_tmp[1],'-')      
-                        else:
+                        if len(data_tmp)==1:
                             line_tmp, = sp_tmp.plot(data_tmp,'-o')         
                         setattr(plt_obj,'im_'+str(count),line_tmp)
-                        
+                        plt.legend(labelcolor='k')
                             
            # SCATTER
                     if type_fig[count] == 'scatter':
@@ -464,15 +449,40 @@ def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = 
             for j in range(n_sp):
                 if count < n_im:
                     data = list_fig[count]
-                    if getattr(plt_obj,'type_fig_'+str(count)) == 'imshow':
+                    if plt_obj.list_title[count] is not None:
+                        ax_tmp =getattr(plt_obj,'ax_'+str(count))
+                        ax_tmp.set_title(plt_obj.list_title[count])
+                    if getattr(plt_obj,'type_fig_'+str(count)) == 'imshow':                            
                         im_tmp =getattr(plt_obj,'im_'+str(count))
+
                         im_tmp.set_data(data)
                         if plt_obj.list_lim[count] is None:
                             im_tmp.set_clim(vmin=data.min(),vmax=data.max())
                         else:
                             im_tmp.set_clim(vmin=plt_obj.list_lim[count][0],vmax=plt_obj.list_lim[count][1])
+     
+
                     if getattr(plt_obj,'type_fig_'+str(count)) == 'plot':
                         
+                        if len(data)==3:
+                            im_tmp =getattr(plt_obj,'im_'+str(count))
+                            im_tmp_2 =getattr(plt_obj,'im_'+str(count)+'_2')
+
+                            im_tmp.set_xdata(data[0])
+                            im_tmp.set_ydata(data[1])
+                            im_tmp_2.set_xdata(data[0])                            
+                            im_tmp_2.set_ydata(data[2])
+
+                            im_tmp.axes.set_xlim([np.min(data[0])-0.1*np.abs(np.min(data[0])),np.max(data[0])+0.1*np.abs(np.max(data[0]))])
+                            
+                            min_y = np.min((data[1],data[2]))
+                            max_y = np.max((data[1],data[2]))
+
+                            if plt_obj.list_lim[count] is None:
+                                im_tmp.axes.set_ylim([min_y-0.1*np.abs(min_y),max_y+0.1*np.abs(max_y)])
+                            else:
+                                im_tmp.axes.set_ylim([plt_obj.list_lim[count][0],plt_obj.list_lim[count][1]])    
+                                
                         if len(data)==2:
                             im_tmp =getattr(plt_obj,'im_'+str(count))
                             im_tmp.set_xdata(data[0])
@@ -484,7 +494,7 @@ def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = 
                             else:
                                 im_tmp.axes.set_ylim([plt_obj.list_lim[count][0],plt_obj.list_lim[count][1]])                            
 
-                        else:
+                        if len(data)==1:
                             im_tmp =getattr(plt_obj,'im_'+str(count))
                             im_tmp.set_ydata(data[0])
                             if plt_obj.list_lim[count] is None:
@@ -506,3 +516,36 @@ def cl_plot(list_fig,plt_obj= None, type_fig = None,fig_number = 20,n_subplot = 
                 count+=1
     plt.draw()
 
+
+def interactive_show(im_array, im_array_ref, event_name ='button_press_event', n_fig = None, title = ['','']):   
+    # create figure and plot scatter
+    if n_fig is None:
+        fig = plt.figure()
+        ax = plt.subplot(111)
+
+    else:
+        fig = plt.figure(n_fig)        
+        ax = plt.subplot(111)
+            
+    im = ax.imshow(im_array) 
+    
+    def hover(event):
+        # if the mouse is over the scatter points
+        if ax.contains(event)[0]:
+            # set the image corresponding to that point
+            if event.button == 1:
+                data = im_array
+                im.set_data(data)
+                plt.title(title[0])
+                im.set_clim(vmin=data.min(), vmax=data.max())
+
+            if event.button == 3:
+                data = im_array_ref
+                im.set_data(data)
+                plt.title(title[1])
+                im.set_clim(vmin=data.min(), vmax=data.max())
+        fig.canvas.draw_idle()
+    
+    # add callback for mouse moves
+    fig.canvas.mpl_connect(event_name, hover)           
+    plt.show()

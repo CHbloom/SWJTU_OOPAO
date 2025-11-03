@@ -99,13 +99,14 @@ class SACContinuous:
         self.device = device
 
     def take_action(self, state):
-        state = torch.tensor([state], dtype=torch.float).to(self.device)
+        state = torch.tensor([np.array(state)], dtype=torch.float).to(self.device)
         action = self.actor(state)[0]
         return action.squeeze(0).tolist()
 
     def calc_target(self, rewards, next_states, dones):  # 计算目标Q值
         next_actions, log_prob = self.actor(next_states)
-        entropy = -log_prob
+        entropy = -log_prob.sum(dim=1, keepdim=True)  # 形状 (64, 1)
+        # print(entropy.size())
         q1_value = self.target_critic_1(next_states, next_actions)
         q2_value = self.target_critic_2(next_states, next_actions)
         next_value = torch.min(q1_value,
@@ -133,9 +134,9 @@ class SACContinuous:
 
         # 更新两个Q网络
         td_target = self.calc_target(rewards, next_states, dones)
-        # print(td_target.size())
-        # print(states.size(),actions.size)
-        # print(self.critic_1(states, actions).size())
+        # print('1---', td_target.size())
+        # print('2---', states.size())
+        # print('3---', self.critic_1(states, actions).size())
         critic_1_loss = torch.mean(
             F.mse_loss(self.critic_1(states, actions), td_target.detach()))
         critic_2_loss = torch.mean(
