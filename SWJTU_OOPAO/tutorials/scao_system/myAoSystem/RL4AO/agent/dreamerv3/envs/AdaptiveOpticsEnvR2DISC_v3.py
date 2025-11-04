@@ -1,8 +1,9 @@
 
 from typing import Optional
 import sys
-sys.path.append('/DATACENTER4/jiangbo.chai/SWJTU_OOPAO')
-sys.path.append('/DATACENTER4/jiangbo.chai/SWJTU_OOPAO/tutorials/scao_system/myAoSystem')
+import matplotlib.pyplot as plt
+sys.path.append('/DATACENTER5/jicheng.liu/SWJTU_OOPAO/SWJTU_OOPAO')
+sys.path.append('/DATACENTER5/jicheng.liu/SWJTU_OOPAO/SWJTU_OOPAO/tutorials/scao_system/myAoSystem')
 import gym
 from gym import spaces
 import numpy as np
@@ -85,7 +86,7 @@ class AOEnv(gym.Env):
         self.wfs.cam.darkCurrent                =   self.param['darkCurrent']
 
         self.camH = Imager_new(exposure_time    =   self.param['exposureTime'], 
-                               clock_rate       =   self.param['exposureTime'],
+                               clock_rate       =   self.param['clockRate'],
                                nyquist_sampling =   self.param['nyquist_sampling'],
                                field_stop_size  =   self.param['field_stop_size'])
         
@@ -238,9 +239,11 @@ class AOEnv(gym.Env):
         terminated = self.current_step >= self.max_step
         truncated = False
 
-        return self._get_state(reward, terminated, truncated,image_updated,
-                               wfs_stats={'mean': wfs_mean, 'var': wfs_var}, 
-                               dm_stats={'mean': dm_mean, 'var': dm_var}
+        return self._get_state(reward, wfs_stats={'mean': wfs_mean, 'var': wfs_var}, 
+                               dm_stats={'mean': dm_mean, 'var': dm_var},
+                               terminated=terminated, 
+                               truncated=truncated,
+                               image_updated=image_updated
                                )
     
 
@@ -278,19 +281,32 @@ class AOEnv(gym.Env):
 
         # 3.重置AO状态
         self.atm.initializeAtmosphere(telescope=self.tel)
-
-        self.tel-self.atm
-        self.ngs * self.tel * self.dm * self.wfs
-        self.camH.relay(self.tel.src)
-        self.camH.referenceFrame = self.camH.frame
-        self.camH.frame = None
-        
         self.dm.coefs = 0
+
+        # 4.获取参考图像
+        self.tel-self.atm
+        # 原本初始exposureTime=1，clockRate=1000需要1000次，非常耗时
+        num_ref_frames = int(self.camH.exposureTime * self.camH.clockRate)
+        for _ in range(num_ref_frames):
+            # 用理想的 ngs 进行一次“传递”，获取图像
+            self.camH.relay(self.tel.src)
+        # 将累积好的帧设置为参考帧
+        self.camH.referenceFrame = self.camH.frame
+        
+        self.camH.frame = None
         self.tel+self.atm
-        obs, reward, is_terminal, _ = self._get_state(0.0, is_first=True)
+        # 5.获取初始状态
+        wfs_history_np = np.array([self.wfs.signal])
+        dm_history_np = np.array([self.dm.coefs])
+        wfs_mean = np.mean(wfs_history_np, axis=0)
+        wfs_var = np.var(wfs_history_np, axis=0)
+        dm_mean = np.mean(dm_history_np, axis=0)
+        dm_var = np.var(dm_history_np, axis=0)
+        obs, reward, is_terminal, _ = self._get_state(0.0,wfs_stats={'mean': wfs_mean, 'var': wfs_var}, 
+                                                        dm_stats={'mean': dm_mean, 'var': dm_var})
         return obs
     
-    def _get_state(self, reward, terminated, truncated, image_updated, wfs_stats, dm_stats):
+    def _get_state(self, reward, wfs_stats, dm_stats, terminated=False, truncated=False, image_updated=False):
         """获取当前状态"""
         # 归一化科学相机图像
         image_max = self.image.max() + 1e-6

@@ -212,8 +212,8 @@ class lensletArray:
             if not hasattr(src, 'phase') or not hasattr(src, 'fluxMap'):
                 print("警告：Source 对象缺少所需的相位或通量属性。")
                 return np.ones((self.resolution, self.resolution), dtype=complex)
-            print("fluxMap:",src.fluxMap.shape)
-            print("src.phase:",src.phase.shape)
+            # print("fluxMap:",src.fluxMap.shape)
+            # print("src.phase:",src.phase.shape)
             amplitude = np.sqrt(src.fluxMap/clockRate)
             val = amplitude * np.exp(1j * src.phase)
         else:
