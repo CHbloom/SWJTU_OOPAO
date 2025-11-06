@@ -471,7 +471,7 @@ if __name__ == "__main__":
     parser.add_argument("--agent", type=str, default="PPO", choices=["PPO", "SAC", "Dreamer-v3"], help="Reinforcement learning algorithm")
     parser.add_argument("--episodes", type=int, default=500, help="Number of training episodes")
     parser.add_argument("--seed", type=int, default=0, help="seed") # AOEnv随机种子未实现------------
-    parser.add_argument("--maxStep", type=int, default=200, help="AOEnv max_step")
+    parser.add_argument("--maxStep", type=int, default=100, help="AOEnv max_step")
     parser.add_argument("--gainCL", type=float, default=0.1, help="Wavefront sensor gain")
     parser.add_argument("--samplingRate", type=int, default=100, help="Telescope sampling frequency (Hz)")
     parser.add_argument("--exposureTime", type=float, default=0.1, help="Camera exposure time (seconds)")
