@@ -147,11 +147,11 @@ class AOEnv(gym.Env):
         self.coefs_list = np.zeros(self.max_step)
         self.fixed_step_time = 0.05 # 每个step经过的时间，固定50ms
 
-        # 用于存储每个 RL 步中所有 WFS 迭代的瞬时 SR
+        # 用于存储每个 RL 步中所有 WFS 迭代的瞬时 SR（波前误差近似计算）
         # 这是一个变长的列表，用于训练后的数据分析和可视化
         self.inst_SR = [] 
         
-        # 用于存储每个 RL 步中最终计算的 SR
+        # 用于存储每个 RL 步中最终计算的 SR（图像计算）
         # 这是一个固定长度的数组，与 RL 步数对应
         self.actual_SR = np.zeros(self.max_step)
 
@@ -208,7 +208,7 @@ class AOEnv(gym.Env):
             self.dm.coefs = self.dm.coefs - self.gainCL * self.M2C_CL @ self.calib_CL.M @ delayed_signal
 
             self.camH.relay(self.tel.src)
-            self.inst_SR.append(np.exp(-np.var(self.tel.OPD[np.where(self.tel.pupil>0)])))
+            self.inst_SR.append(np.exp(-np.var(self.tel.src.phase[np.where(self.tel.pupil==1)])))
             if self.camH.frame is not None:
                 image_updated = True
                 self.image = resize(self.camH.frame, (self.image_resolution,self.image_resolution), mode='reflect', anti_aliasing=True)
@@ -229,7 +229,7 @@ class AOEnv(gym.Env):
         # 计算当前step估算的SR的均值
         SR_proxy_mean = np.mean(self.inst_SR[-num_iterations:]) if num_iterations>0 else 0.0
         # 记录实际用图像计算的SR，如果当前step没有新的图像则SR不会变化    
-        self.actual_SR[self.current_step] = self.camH.strehl[0][0]
+        self.actual_SR[self.current_step] = self.camH.strehl[0][0] if self.camH.strehl else self.actual_SR[self.current_step-1]
 
         self.residual[self.current_step] = np.std(self.tel.OPD[np.where(self.tel.pupil > 0)]) * 1e9
 
@@ -282,6 +282,8 @@ class AOEnv(gym.Env):
         # 3.重置AO状态
         self.atm.initializeAtmosphere(telescope=self.tel)
         self.dm.coefs = 0
+        self.camH.frameBuffer = 0
+        self.camH.frameCount = 0
 
         # 4.获取参考图像
         self.tel-self.atm
@@ -292,8 +294,9 @@ class AOEnv(gym.Env):
             self.camH.relay(self.tel.src)
         # 将累积好的帧设置为参考帧
         self.camH.referenceFrame = self.camH.frame
-        
         self.camH.frame = None
+        self.camH.strehl = None
+        
         self.tel+self.atm
         # 5.获取初始状态
         wfs_history_np = np.array([self.wfs.signal])
@@ -378,4 +381,6 @@ class AOEnv(gym.Env):
         reward -= 0.3 * clock_penalty
 
         # TODO 3.成像质量奖励
+
+        return reward
     

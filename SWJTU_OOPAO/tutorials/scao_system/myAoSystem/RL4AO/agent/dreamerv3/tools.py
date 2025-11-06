@@ -216,6 +216,10 @@ def simulate(
                         cache[envs[i].id].pop(key)
 
                 if not is_eval:
+                    # 新增：记录 actual_SR 平均值
+                    if hasattr(envs[i], "actual_SR") and len(envs[i].actual_SR) > 0:
+                        mean_sr = float(np.mean(envs[i].actual_SR))
+                        logger.scalar("train_SR", mean_sr)
                     step_in_dataset = erase_over_episodes(cache, limit)
                     logger.scalar(f"dataset_size", step_in_dataset)
                     logger.scalar(f"train_return", score)
@@ -223,6 +227,9 @@ def simulate(
                     logger.scalar(f"train_episodes", len(cache))
                     logger.write(step=logger.step)
                 else:
+                    if hasattr(envs[i], "actual_SR") and len(envs[i].actual_SR) > 0:
+                        mean_sr = float(np.mean(envs[i].actual_SR))
+                        logger.scalar("eval_SR", mean_sr)
                     if not "eval_lengths" in locals():
                         eval_lengths = []
                         eval_scores = []

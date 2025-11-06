@@ -50,10 +50,14 @@ defaults:
   act: 'SiLU'
   norm: True
   encoder:
-    {mlp_keys: 'dmCoefs|wfsSingnal', cnn_keys: 'image', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, symlog_inputs: True}
+    {mlp_keys: 'image_max|wfs_stats|wfs_max|dm_stats|dm_max|image_updated', cnn_keys: 'image', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, symlog_inputs: True}
   decoder:
-    {mlp_keys: 'dmCoefs|wfsSingnal', cnn_keys: 'image', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, cnn_sigmoid: False, image_dist: mse, vector_dist: symlog_mse, outscale: 1.0}
-  # encoder:
+    {mlp_keys: 'image_max|wfs_stats|wfs_max|dm_stats|dm_max|image_updated', cnn_keys: 'image', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, cnn_sigmoid: False, image_dist: mse, vector_dist: symlog_mse, outscale: 1.0}
+  # encoder: # R2
+  #   {mlp_keys: 'dmCoefs|wfsSingnal', cnn_keys: 'image', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, symlog_inputs: True}
+  # decoder:
+  #   {mlp_keys: 'dmCoefs|wfsSingnal', cnn_keys: 'image', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, cnn_sigmoid: False, image_dist: mse, vector_dist: symlog_mse, outscale: 1.0}
+  # encoder: # R1
   #   {mlp_keys: 'dmCoefs|wfsSingnal|turb_features', cnn_keys: 'image|wfsFrame', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, symlog_inputs: True}
   # decoder:
   #   {mlp_keys: 'dmCoefs|wfsSingnal|turb_features', cnn_keys: 'image|wfsFrame', act: 'SiLU', norm: True, cnn_depth: 32, kernel_size: 4, minres: 4, mlp_layers: 2, mlp_units: 512, cnn_sigmoid: False, image_dist: mse, vector_dist: symlog_mse, outscale: 1.0}

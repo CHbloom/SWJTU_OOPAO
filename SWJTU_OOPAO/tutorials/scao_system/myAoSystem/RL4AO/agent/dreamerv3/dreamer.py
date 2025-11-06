@@ -26,7 +26,8 @@ from torch import distributions as torchd
 # from envs.AdaptiveOpticsEnvR2 import AOEnv
 # from envs.AdaptiveOpticsEnvDISC import AOEnv
 # from envs.AdaptiveOpticsEnvR1DISC import AOEnv
-from envs.AdaptiveOpticsEnvR2DISC import AOEnv
+# from envs.AdaptiveOpticsEnvR2DISC import AOEnv
+from envs.AdaptiveOpticsEnvR2DISC_v3 import AOEnv
 
 to_np = lambda x: x.detach().cpu().numpy()
 
@@ -471,11 +472,11 @@ if __name__ == "__main__":
     parser.add_argument("--episodes", type=int, default=500, help="Number of training episodes")
     parser.add_argument("--seed", type=int, default=0, help="seed") # AOEnv随机种子未实现------------
     parser.add_argument("--maxStep", type=int, default=200, help="AOEnv max_step")
-    parser.add_argument("--gainCL", type=float, default=0.6, help="Wavefront sensor gain")
+    parser.add_argument("--gainCL", type=float, default=0.1, help="Wavefront sensor gain")
     parser.add_argument("--samplingRate", type=int, default=100, help="Telescope sampling frequency (Hz)")
     parser.add_argument("--exposureTime", type=float, default=0.1, help="Camera exposure time (seconds)")
     parser.add_argument("--clockRate", type=int, default=100, help="Camera clock rate (Hz)")
-    parser.add_argument("--lightRatio", type=float, default=0.1, help="wfs lightRatio")
+    parser.add_argument("--lightRatio", type=float, default=0.6, help="wfs lightRatio")
     parser.add_argument("--paramFile", type=str, default="paramFile1", help="paramFile")
     parser.add_argument("--k", type=int, default=3, help="state queue length")
     parser.add_argument("--delay", type=int, default=0, help="delay")
